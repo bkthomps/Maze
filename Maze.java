@@ -1,19 +1,21 @@
 /**
- * **********************************************************************************************************************************
+ ***********************************************************************************************************************
  * Bailey Thompson
- * Maze (1.1)
- * 16 September 2016
- * Info: The user is first introduced to a default grid, in which a file is created using file io. The user has an option of three
- * Info: buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to only walls and paths, when
- * Info: the generate button is pressed, a new board of specified size is created, and when the exit button is pressed, the program
- * Info: exits. The size slider is a value between and including 2 to 30, when the generate button is pressed, the size is thus
- * Info: reflected, if the user hovers over the slider, important information is displayed to the user. The time slider is between
- * Info: and including 0 to 1000 -- the time is in milliseconds; 0 is instant -- the time slider is reflected immediately after it
- * Info: is changed, as with the other slider this one also displays important information if hovered over. The first click on the
- * Info: board is the start position and is in red. The second click is the end position in blue. A green cell will go from start
- * Info: to end and change cell once per turn as specified by the time slider. Once the green cell reached the end, it will display
- * Info: the path taken. When generate is clicked, the progress in percentage is displayed next to the title of the program.
- ***********************************************************************************************************************************
+ * Maze (1.1.1)
+ * 27 November 2016
+ * Info: The  user  is  first  introduced  to  a default grid, in which a file is created using file io. The user has an
+ * Info: option  of three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to
+ * Info: only  walls  and paths, when the generate button is pressed, a new board of specified size is created, and when
+ * Info: the  exit  button is pressed, the program exits. The size slider is a value between and including 2 to 30, when
+ * Info: the  generate  button  is  pressed,  the  size is thus reflected, if the user hovers over the slider, important
+ * Info: information  is  displayed  to  the  user. The time slider is between and including 0 to 1000 -- the time is in
+ * Info: milliseconds;  0  is instant -- the time slider is reflected immediately after it is changed, as with the other
+ * Info: slider  this one also displays important information if hovered over. The first click on the board is the start
+ * Info: position  and  is  in red. The second click is the end position in blue. A green cell will go from start to end
+ * Info: and  change  cell  once  per turn as specified by the time slider. Once the green cell reached the end, it will
+ * Info: display  the path taken. When generate is clicked, the progress in percentage is displayed next to the title of
+ * Info: the program.
+ ***********************************************************************************************************************
  */
 //declaring package
 package maze;
@@ -61,7 +63,8 @@ public class Maze {
     //declaring String array used for file io
     String[] split;
     //declaring variables used for colouring in cells for the gui and for recursively solving the maze
-    int xOffset, yOffset, colourMode, currentX, currentY, endX, endY, startX, startY, guiDisplay, sizeValue, time, positionCounter;
+    int xOffset, yOffset, colourMode, currentX, currentY, endX, endY, startX, startY;
+    int guiDisplay, sizeValue, time, positionCounter;
     //used for recursively solving the maze
     char direction;
     //declaring variable for amount of tries has been attemped to generate maze
@@ -301,7 +304,8 @@ public class Maze {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
                 //random generation used for detemining if cell should be picked
                 int randomPass = (int) (Math.random() * (wallCells + 1));
-                //only uses cell if random generation picks cell and if cells this turn has not already been picked and if the cell is actually a temp cell
+                //only uses cell if random generation picks cell and if cells this turn has not 
+                //already been picked and if the cell is actually a temp cell
                 if (skip == false && mazeArray[vertical][horizontal] == 10 && randomPass == 0) {
                     //declaring and setting variable to zero
                     int neighbours = 0;
@@ -1408,7 +1412,8 @@ public class Maze {
                         int horizontalClickPosition = (e.getX() - xOffset) / (getWidth() / sizeValue);
                         int verticalClickPosition = (e.getY() - yOffset) / (getHeight() / sizeValue);
                         //do only if cell in area is a path tile
-                        if (verticalClickPosition >= 0 && verticalClickPosition <= sizeValue - 1 && horizontalClickPosition >= 0 && horizontalClickPosition <= sizeValue - 1) {
+                        if (verticalClickPosition >= 0 && verticalClickPosition <= sizeValue - 1
+                                && horizontalClickPosition >= 0 && horizontalClickPosition <= sizeValue - 1) {
                             if (mazeArray[verticalClickPosition][horizontalClickPosition] == 0) {
                                 //only execute following lines of code if criteria are met
                                 if (colourMode == 0) {
@@ -1417,7 +1422,8 @@ public class Maze {
                                     //setting the start x coordinate
                                     startX = currentX = horizontalClickPosition;
                                     //setting starting direction in maze
-                                    if (currentX > 0 && currentX < sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
+                                    if (currentX > 0 && currentX < sizeValue - 1 && currentY > 0
+                                            && currentY < sizeValue - 1) {
                                         if (mazeArray[currentY][currentX + 1] == 0) {
                                             direction = 'r';
                                         } else if (mazeArray[currentY + 1][currentX] == 0) {
@@ -1509,7 +1515,8 @@ public class Maze {
             MouseAdapter mouseHandler;
             mouseHandler = new MouseAdapter() {
 
-                //if user moves mouse execute following line of code in order to show temporary colour where a tile would be if user mouse clicked
+                //if user moves mouse execute following line of code in order to show 
+                //temporary colour where a tile would be if user mouse clicked
                 @Override
                 public void mouseMoved(MouseEvent e) {
                     int width = getWidth();
@@ -1561,7 +1568,8 @@ public class Maze {
                 }
             }
 
-            //used for showing temporary cell colour where cursor is hovering and when if clicked would become permanent colour
+            //used for showing temporary cell colour where cursor is 
+            //hovering and when if clicked would become permanent colour
             if (selectedCell != null && (colourMode == 0 || colourMode == 1)) {
                 if (selectedCell.x + (selectedCell.y * sizeValue) <= sizeValue * sizeValue) {
                     int index = selectedCell.x + (selectedCell.y * sizeValue);
@@ -1669,7 +1677,9 @@ public class Maze {
         }
         //if the file does not contain anything since it was just created, default variables are used for save file
         if (saveFile == null) {
-            saveFile = "10 100 0 0 0 0 0 1 0 0 0 0 1 1 0 1 0 1 0 1 1 0 1 1 0 1 0 1 0 1 1 0 1 0 1 0 0 0 1 1 0 0 0 0 0 1 1 0 0 1 1 0 0 1 0 1 1 0 1 1 0 0 1 0 0 0 0 0 0 0 1 0 1 1 1 0 1 0 1 0 0 0 1 0 0 0 1 1 1 1 1 0 0 0 1 0 0 0 1 0 0 0";
+            saveFile = "10 100 0 0 0 0 0 1 0 0 0 0 1 1 0 1 0 1 0 1 1 0 1 1 0 1 0 1 0 1 1 0 1 0 1 0 0 0 1 1 0 0 0 0 0 "
+                    + "1 1 0 0 1 1 0 0 1 0 1 1 0 1 1 0 0 1 0 0 0 0 0 0 0 1 0 1 1 1 0 1 0 1 0 0 0 1 0 0 0 1 1 1 1 1 0 "
+                    + "0 0 1 0 0 0 1 0 0 0";
         }
         //a String array is created and each part of the array is saved to from saveFile seperated by spaces
         split = saveFile.split("\\s+");
