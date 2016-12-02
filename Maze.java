@@ -1,8 +1,8 @@
 /**
  ***********************************************************************************************************************
  * Bailey Thompson
- * Maze (1.1.1)
- * 27 November 2016
+ * Maze (1.1.2)
+ * 2 December 2016
  * Info: The  user  is  first  introduced  to  a default grid, in which a file is created using file io. The user has an
  * Info: option  of three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to
  * Info: only  walls  and paths, when the generate button is pressed, a new board of specified size is created, and when
@@ -306,7 +306,7 @@ public class Maze {
                 int randomPass = (int) (Math.random() * (wallCells + 1));
                 //only uses cell if random generation picks cell and if cells this turn has not 
                 //already been picked and if the cell is actually a temp cell
-                if (skip == false && mazeArray[vertical][horizontal] == 10 && randomPass == 0) {
+                if (!skip && mazeArray[vertical][horizontal] == 10 && randomPass == 0) {
                     //declaring and setting variable to zero
                     int neighbours = 0;
                     //checking all four sides of cell and reporting amount fo neighbours
@@ -338,22 +338,22 @@ public class Maze {
                     }
                     //setting the temp cells around the cell
                     if (vertical > 0) {
-                        if (visitedArray[vertical - 1][horizontal] == false) {
+                        if (!visitedArray[vertical - 1][horizontal]) {
                             mazeArray[vertical - 1][horizontal] = 10;
                         }
                     }
                     if (vertical < sizeValue - 1) {
-                        if (visitedArray[vertical + 1][horizontal] == false) {
+                        if (!visitedArray[vertical + 1][horizontal]) {
                             mazeArray[vertical + 1][horizontal] = 10;
                         }
                     }
                     if (horizontal > 0) {
-                        if (visitedArray[vertical][horizontal - 1] == false) {
+                        if (!visitedArray[vertical][horizontal - 1]) {
                             mazeArray[vertical][horizontal - 1] = 10;
                         }
                     }
                     if (horizontal < sizeValue - 1) {
-                        if (visitedArray[vertical][horizontal + 1] == false) {
+                        if (!visitedArray[vertical][horizontal + 1]) {
                             mazeArray[vertical][horizontal + 1] = 10;
                         }
                     }
@@ -367,7 +367,7 @@ public class Maze {
         //determining if the maze is completed
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                if (visitedArray[vertical][horizontal] == false) {
+                if (!visitedArray[vertical][horizontal]) {
                     allDone = false;
                 }
             }
@@ -378,7 +378,7 @@ public class Maze {
         //from 90% to 95% it is a quarter speed
         //from 95% to 99% it is one eight speed
         //it never goes above 99%
-        if (allDone == false) {
+        if (!allDone) {
             tries += 1;
             if (percentage != 99) {
                 percentage = (100 * tries) / (Math.pow(48, (2 * sizeValue - 10) * 0.05 + 1));
@@ -884,7 +884,7 @@ public class Maze {
             StartSolver();
         }
         //only execute once
-        if (firstTime == false) {
+        if (!firstTime) {
             //changes the direction so that it can find most direct path
             switch (direction) {
                 case 'u':
@@ -1623,7 +1623,7 @@ public class Maze {
                             //if cell is of type 4 set colour to green
                             g2d.setColor(Color.GREEN);
                             //checking if all the green cells are currently filled in or not
-                            if (positionArray[vertical][horizontal] == positionCounter && cancel == false) {
+                            if (positionArray[vertical][horizontal] == positionCounter && !cancel) {
                                 //filling in current and trailing green cells
                                 for (int vertical2 = 0; vertical2 < sizeValue; vertical2++) {
                                     for (int horizontal2 = 0; horizontal2 < sizeValue; horizontal2++) {
