@@ -1,8 +1,7 @@
 /**
- ***********************************************************************************************************************
  * Bailey Thompson
- * Maze (1.1.3)
- * 22 December 2016
+ * Maze (1.1.4)
+ * 8 January 2017
  * Info: The  user  is  first  introduced  to  a default grid, in which a file is created using file io. The user has an
  * Info: option  of three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to
  * Info: only  walls  and paths, when the generate button is pressed, a new board of specified size is created, and when
@@ -15,7 +14,6 @@
  * Info: and  change  cell  once  per turn as specified by the time slider. Once the green cell reached the end, it will
  * Info: display  the path taken. When generate is clicked, the progress in percentage is displayed next to the title of
  * Info: the program.
- ***********************************************************************************************************************
  */
 package maze;
 
