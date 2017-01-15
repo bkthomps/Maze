@@ -1,6 +1,6 @@
 /**
  * Bailey Thompson
- * Maze (1.2.0)
+ * Maze (1.2.1)
  * 14 January 2017
  * Info: The  user  is  first  introduced  to  a default grid, in which a file is created using file io. The user has an
  * Info: option  of three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to
@@ -1545,8 +1545,10 @@ public class Maze {
             //file is read from and saved to variable saveFile if file already exists
             try (InputStream in = Files.newInputStream(FILE);
                     BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
-                String line = reader.readLine();
-                saveFile = line;
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    saveFile = line;
+                }
             } catch (IOException y) {
                 System.err.println(y);
             }
