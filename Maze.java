@@ -1,7 +1,7 @@
 /**
  * Bailey Thompson
- * Maze (1.1.4)
- * 8 January 2017
+ * Maze (1.2.0)
+ * 14 January 2017
  * Info: The  user  is  first  introduced  to  a default grid, in which a file is created using file io. The user has an
  * Info: option  of three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to
  * Info: only  walls  and paths, when the generate button is pressed, a new board of specified size is created, and when
@@ -53,7 +53,7 @@ import javax.swing.JSlider;
 
 public class Maze {
 
-    private static final Path FILE = Paths.get("RecursiveMazeSolver.txt");
+    private static final Path FILE = Paths.get("Maze.txt");
     private JFrame frame;
     private JSlider sizeSlider, timingSlider;
     private JPanel panel;
@@ -248,52 +248,32 @@ public class Maze {
                     //declaring and setting variable to zero
                     int neighbours = 0;
                     //checking all four sides of cell and reporting amount fo neighbours
-                    if (vertical > 0) {
-                        if (mazeArray[vertical - 1][horizontal] == 0) {
-                            neighbours++;
-                        }
+                    if (vertical > 0 && mazeArray[vertical - 1][horizontal] == 0) {
+                        neighbours++;
                     }
-                    if (vertical < sizeValue - 1) {
-                        if (mazeArray[vertical + 1][horizontal] == 0) {
-                            neighbours++;
-                        }
+                    if (vertical < sizeValue - 1 && mazeArray[vertical + 1][horizontal] == 0) {
+                        neighbours++;
                     }
-                    if (horizontal > 0) {
-                        if (mazeArray[vertical][horizontal - 1] == 0) {
-                            neighbours++;
-                        }
+                    if (horizontal > 0 && mazeArray[vertical][horizontal - 1] == 0) {
+                        neighbours++;
                     }
-                    if (horizontal < sizeValue - 1) {
-                        if (mazeArray[vertical][horizontal + 1] == 0) {
-                            neighbours++;
-                        }
+                    if (horizontal < sizeValue - 1 && mazeArray[vertical][horizontal + 1] == 0) {
+                        neighbours++;
                     }
                     //setting if cells is full or if it empty depending on amount of neighbours
-                    if (neighbours == 1) {
-                        mazeArray[vertical][horizontal] = 0;
-                    } else {
-                        mazeArray[vertical][horizontal] = 1;
-                    }
+                    mazeArray[vertical][horizontal] = (neighbours == 1) ? (0) : (1);
                     //setting the temp cells around the cell
-                    if (vertical > 0) {
-                        if (!visitedArray[vertical - 1][horizontal]) {
-                            mazeArray[vertical - 1][horizontal] = 10;
-                        }
+                    if (vertical > 0 && !visitedArray[vertical - 1][horizontal]) {
+                        mazeArray[vertical - 1][horizontal] = 10;
                     }
-                    if (vertical < sizeValue - 1) {
-                        if (!visitedArray[vertical + 1][horizontal]) {
-                            mazeArray[vertical + 1][horizontal] = 10;
-                        }
+                    if (vertical < sizeValue - 1 && !visitedArray[vertical + 1][horizontal]) {
+                        mazeArray[vertical + 1][horizontal] = 10;
                     }
-                    if (horizontal > 0) {
-                        if (!visitedArray[vertical][horizontal - 1]) {
-                            mazeArray[vertical][horizontal - 1] = 10;
-                        }
+                    if (horizontal > 0 && !visitedArray[vertical][horizontal - 1]) {
+                        mazeArray[vertical][horizontal - 1] = 10;
                     }
-                    if (horizontal < sizeValue - 1) {
-                        if (!visitedArray[vertical][horizontal + 1]) {
-                            mazeArray[vertical][horizontal + 1] = 10;
-                        }
+                    if (horizontal < sizeValue - 1 && !visitedArray[vertical][horizontal + 1]) {
+                        mazeArray[vertical][horizontal + 1] = 10;
                     }
                     //setting skip to true so that this round only one cell is created
                     skip = true;
@@ -341,7 +321,7 @@ public class Maze {
 
     private void startSolver() {
         //only do such if the maze is not solved
-        if (Math.abs(endX - currentX) + Math.abs(endY - currentY) != 1) {
+        while (Math.abs(endX - currentX) + Math.abs(endY - currentY) != 1) {
             //case for if in the middle of the board and not corners or sides
             if (currentX > 0 && currentX < sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
                 switch (direction) {
@@ -816,7 +796,6 @@ public class Maze {
             if (mazeArray[startY][startX] != 2) {
                 mazeArray[startY][startX] = 2;
             }
-            startSolver();
         }
         //only execute once
         if (!firstTime) {
@@ -1567,10 +1546,7 @@ public class Maze {
             try (InputStream in = Files.newInputStream(FILE);
                     BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
                 String line = reader.readLine();
-                while (line != null) {
-                    //content of file is saved to saveFile
-                    saveFile = line;
-                }
+                saveFile = line;
             } catch (IOException y) {
                 System.err.println(y);
             }
