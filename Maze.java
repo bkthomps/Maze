@@ -94,7 +94,7 @@ class Maze {
     }
 
     private void prepareGUI() {
-        frame = new JFrame("mazeCompute");
+        frame = new JFrame("Maze");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
         frame.setLayout(new BorderLayout());
