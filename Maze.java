@@ -1,21 +1,19 @@
-/**
+/*
  * Bailey Thompson
- * Maze (1.2.1)
- * 14 January 2017
- * Info: The  user  is  first  introduced  to  a default grid, in which a file is created using file io. The user has an
- * Info: option  of three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to
- * Info: only  walls  and paths, when the generate button is pressed, a new board of specified size is created, and when
- * Info: the  exit  button is pressed, the program exits. The size slider is a value between and including 2 to 30, when
- * Info: the  generate  button  is  pressed,  the  size is thus reflected, if the user hovers over the slider, important
- * Info: information  is  displayed  to  the  user. The time slider is between and including 0 to 1000 -- the time is in
- * Info: milliseconds;  0  is instant -- the time slider is reflected immediately after it is changed, as with the other
- * Info: slider  this one also displays important information if hovered over. The first click on the board is the start
- * Info: position  and  is  in red. The second click is the end position in blue. A green cell will go from start to end
- * Info: and  change  cell  once  per turn as specified by the time slider. Once the green cell reached the end, it will
- * Info: display  the path taken. When generate is clicked, the progress in percentage is displayed next to the title of
- * Info: the program.
+ * Maze (1.3.0)
+ * 6 February 2017
+ * The user is first introduced to a default grid, in which a file is created using file io. The user has an option of
+ * three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to only walls and
+ * paths, when the generate button is pressed, a new board of specified size is created, and when the exit button is
+ * pressed, the program exits. The size slider is a value between and including 2 to 30, when the generate button is
+ * pressed, the size is thus reflected, if the user hovers over the slider, important information is displayed to the
+ * user. The time slider is between and including 0 to 1000 — the time is in milliseconds; 0 is instant — the time
+ * slider is reflected immediately after it is changed, as with the other slider this one also displays important
+ * information if hovered over. The first click on the board is the start position and is in red. The second click is
+ * the end position in blue. A green cell will go from start to end and change cell once per turn as specified by the
+ * time slider. Once the green cell reached the end, it will display the path taken. When generate is clicked, the
+ * progress in percentage is displayed next to the title of the program.
  */
-package maze;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -51,32 +49,30 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 
-public class Maze {
+class Maze {
 
-    private static final Path FILE = Paths.get("Maze.txt");
+    private static final Path FILE = Paths.get("mazeCompute.txt");
     private JFrame frame;
     private JSlider sizeSlider, timingSlider;
-    private JPanel panel;
-    private JButton btnClear, btnGenerate, btnExit;
     private List<Rectangle> cells;
     private Point selectedCell;
-    boolean firstTime;
-    boolean[][] visitedArray;
-    int xOffset, yOffset, colourMode, currentX, currentY, endX, endY, startX, startY;
-    int guiDisplay, sizeValue, time, positionCounter;
-    int[][] mazeArray, positionArray;
-    long tries;
-    double percentage;
-    char direction;
-    String saveFile;
-    String[] split;
+    private boolean firstTime;
+    private boolean[][] visitedArray;
+    private int xOffset, yOffset, colourMode, currentX, currentY, endX, endY, startX, startY;
+    private int guiDisplay, sizeValue, time, positionCounter;
+    private int[][] mazeArray, positionArray;
+    private long tries;
+    private double percentage;
+    private char direction;
+    private String saveFile;
+    private String[] split;
 
     public static void main(String[] args) {
-        Maze Maze = new Maze();
-        Maze.Maze();
+        Maze maze = new Maze();
+        maze.mazeCompute();
     }
 
-    private void Maze() {
+    private void mazeCompute() {
         //checking the monitor dimensions
         Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
         //setting the gui size
@@ -98,7 +94,7 @@ public class Maze {
     }
 
     private void prepareGUI() {
-        frame = new JFrame("Maze");
+        frame = new JFrame("mazeCompute");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.setResizable(false);
         frame.setLayout(new BorderLayout());
@@ -107,11 +103,11 @@ public class Maze {
 
         frame.setLocationRelativeTo(null);
 
-        panel = new JPanel();
+        JPanel panel = new JPanel();
 
-        btnClear = new JButton("Clear");
-        btnGenerate = new JButton("Generate");
-        btnExit = new JButton("Exit");
+        JButton btnClear = new JButton("Clear");
+        JButton btnGenerate = new JButton("Generate");
+        JButton btnExit = new JButton("Exit");
 
         sizeSlider = new JSlider(JSlider.HORIZONTAL, 2, 30, sizeValue);
         sizeSlider.setPaintLabels(true);
@@ -123,7 +119,7 @@ public class Maze {
         timingSlider.setPaintLabels(true);
         timingSlider.setMajorTickSpacing(250);
         timingSlider.setPreferredSize(new Dimension(150, 40));
-        timingSlider.setToolTipText("Miliseconds Between Turns");
+        timingSlider.setToolTipText("Milli-seconds Between Turns");
 
         //setting the layout of both rows of buttons
         panel.setLayout(new FlowLayout(FlowLayout.CENTER));
@@ -168,16 +164,14 @@ public class Maze {
             save();
         });
 
-        btnExit.addActionListener((ActionEvent e) -> {
-            System.exit(0);
-        });
+        btnExit.addActionListener((ActionEvent e) -> System.exit(0));
     }
 
     private void randomize() {
         int white, black;
         //loop executed then executed again if too many black tiles
         do {
-            initializerandomize();
+            initializeRandomize();
             white = 0;
             black = 0;
             //using 2d array to check every single cells
@@ -194,10 +188,10 @@ public class Maze {
             }
         } while (black / white > 0.5);
         //displaying the title of the program
-        frame.setTitle("Maze");
+        frame.setTitle("mazeCompute");
     }
 
-    private void initializerandomize() {
+    private void initializeRandomize() {
         //setting every cell to wall and unvisited
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
@@ -240,9 +234,9 @@ public class Maze {
         //2d array used for creating path cells
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                //random generation used for detemining if cell should be picked
+                //random generation used for determining if cell should be picked
                 int randomPass = (int) (Math.random() * (wallCells + 1));
-                //only uses cell if random generation picks cell and if cells this turn has not 
+                //only uses cell if random generation picks cell and if cells this turn has not
                 //already been picked and if the cell is actually a temp cell
                 if (!skip && mazeArray[vertical][horizontal] == 10 && randomPass == 0) {
                     //declaring and setting variable to zero
@@ -313,7 +307,7 @@ public class Maze {
                     }
                 }
                 //displaying for the user to wait and showing percentage
-                frame.setTitle("Maze (" + (int) percentage + "% Done loading)");
+                frame.setTitle("mazeCompute (" + (int) percentage + "% Done loading)");
             }
             randomGenerator();
         }
@@ -1413,7 +1407,7 @@ public class Maze {
             MouseAdapter mouseHandler;
             mouseHandler = new MouseAdapter() {
 
-                //if user moves mouse execute following line of code in order to show 
+                //if user moves mouse execute following line of code in order to show
                 //temporary colour where a tile would be if user mouse clicked
                 @Override
                 public void mouseMoved(MouseEvent e) {
@@ -1466,7 +1460,7 @@ public class Maze {
                 }
             }
 
-            //used for showing temporary cell colour where cursor is 
+            //used for showing temporary cell colour where cursor is
             //hovering and when if clicked would become permanent colour
             if (selectedCell != null && (colourMode == 0 || colourMode == 1)) {
                 if (selectedCell.x + (selectedCell.y * sizeValue) <= sizeValue * sizeValue) {
@@ -1483,9 +1477,7 @@ public class Maze {
 
             //drawing grey outlines of the cells
             g2d.setColor(Color.GRAY);
-            cells.stream().forEach((cell) -> {
-                g2d.draw(cell);
-            });
+            cells.forEach(g2d::draw);
 
             int tempTime = time;
             time = timingSlider.getValue();
@@ -1544,16 +1536,16 @@ public class Maze {
         } catch (FileAlreadyExistsException x) {
             //file is read from and saved to variable saveFile if file already exists
             try (InputStream in = Files.newInputStream(FILE);
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
+                 BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     saveFile = line;
                 }
             } catch (IOException y) {
-                System.err.println(y);
+                System.err.println("Error 1 in method load");
             }
         } catch (IOException x) {
-            System.err.println(x);
+            System.err.println("Error 2 in method load");
         }
         //if the file does not contain anything since it was just created, default variables are used for save file
         if (saveFile == null) {
@@ -1561,7 +1553,7 @@ public class Maze {
                     + "1 1 0 0 1 1 0 0 1 0 1 1 0 1 1 0 0 1 0 0 0 0 0 0 0 1 0 1 1 1 0 1 0 1 0 0 0 1 0 0 0 1 1 1 1 1 0 "
                     + "0 0 1 0 0 0 1 0 0 0";
         }
-        //a String array is created and each part of the array is saved to from saveFile seperated by spaces
+        //a String array is created and each part of the array is saved to from saveFile separated by spaces
         split = saveFile.split("\\s+");
         //variable size is the first number
         sizeValue = parseInt(split[0], 10);
@@ -1570,7 +1562,7 @@ public class Maze {
     }
 
     private void save() {
-        //saveFile is created using the main variables seperated by spaces
+        //saveFile is created using the main variables separated by spaces
         saveFile = sizeValue + " " + time;
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
@@ -1587,7 +1579,7 @@ public class Maze {
                 Files.newOutputStream(FILE, WRITE, TRUNCATE_EXISTING))) {
             out.write(data, 0, data.length);
         } catch (IOException x) {
-            System.err.println(x);
+            System.err.println("Error in method save");
         }
     }
 }
