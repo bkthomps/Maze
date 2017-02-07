@@ -51,7 +51,7 @@ import javax.swing.JSlider;
 
 class Maze {
 
-    private static final Path FILE = Paths.get("mazeCompute.txt");
+    private static final Path FILE = Paths.get("Maze.txt");
     private JFrame frame;
     private JSlider sizeSlider, timingSlider;
     private List<Rectangle> cells;
@@ -188,7 +188,7 @@ class Maze {
             }
         } while (black / white > 0.5);
         //displaying the title of the program
-        frame.setTitle("mazeCompute");
+        frame.setTitle("Maze");
     }
 
     private void initializeRandomize() {
@@ -307,7 +307,7 @@ class Maze {
                     }
                 }
                 //displaying for the user to wait and showing percentage
-                frame.setTitle("mazeCompute (" + (int) percentage + "% Done loading)");
+                frame.setTitle("Maze (" + (int) percentage + "% Done loading)");
             }
             randomGenerator();
         }
