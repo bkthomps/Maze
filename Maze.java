@@ -49,7 +49,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 
-public class Maze {
+class Maze {
 
     private static final Path FILE = Paths.get("Maze.txt");
     private JFrame frame;
