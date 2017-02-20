@@ -1,18 +1,7 @@
 /*
  * Bailey Thompson
- * Maze (1.3.0)
- * 6 February 2017
- * The user is first introduced to a default grid, in which a file is created using file io. The user has an option of
- * three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to only walls and
- * paths, when the generate button is pressed, a new board of specified size is created, and when the exit button is
- * pressed, the program exits. The size slider is a value between and including 2 to 30, when the generate button is
- * pressed, the size is thus reflected, if the user hovers over the slider, important information is displayed to the
- * user. The time slider is between and including 0 to 1000 — the time is in milliseconds; 0 is instant — the time
- * slider is reflected immediately after it is changed, as with the other slider this one also displays important
- * information if hovered over. The first click on the board is the start position and is in red. The second click is
- * the end position in blue. A green cell will go from start to end and change cell once per turn as specified by the
- * time slider. Once the green cell reached the end, it will display the path taken. When generate is clicked, the
- * progress in percentage is displayed next to the title of the program.
+ * Maze (1.3.1)
+ * 20 February 2017
  */
 
 import java.awt.BorderLayout;
@@ -33,13 +22,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import static java.lang.Integer.parseInt;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
-import static java.nio.file.StandardOpenOption.WRITE;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -49,23 +35,48 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
 
+import static java.lang.Integer.parseInt;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
+import static java.nio.file.StandardOpenOption.WRITE;
+
+/**
+ * The user is first introduced to a default grid, in which a file is created using file io. The user has an option of
+ * three buttons and two sliders on the bottom. When the clear button is pressed, the board is reset to only walls and
+ * paths, when the generate button is pressed, a new board of specified size is created, and when the exit button is
+ * pressed, the program exits. The size slider is a value between and including 2 to 30, when the generate button is
+ * pressed, the size is thus reflected, if the user hovers over the slider, important information is displayed to the
+ * user. The time slider is between and including 0 to 1000 — the time is in milliseconds; 0 is instant — the time
+ * slider is reflected immediately after it is changed, as with the other slider this one also displays important
+ * information if hovered over. The first click on the board is the start position and is in red. The second click is
+ * the end position in blue. A green cell will go from start to end and change cell once per turn as specified by the
+ * time slider. Once the green cell reached the end, it will display the path taken. When generate is clicked, the
+ * progress in percentage is displayed next to the title of the program.
+ */
 class Maze {
 
+    enum Tile{WHITE, BLACK, RED, BLUE, GREEN, NEXT, WALL}
+    enum Direction{UP, DOWN, RIGHT, LEFT}
+
     private static final Path FILE = Paths.get("Maze.txt");
+
     private JFrame frame;
     private JSlider sizeSlider, timingSlider;
-    private List<Rectangle> cells;
-    private Point selectedCell;
+    
     private boolean firstTime;
     private boolean[][] visitedArray;
     private int xOffset, yOffset, colourMode, currentX, currentY, endX, endY, startX, startY;
     private int guiDisplay, sizeValue, time, positionCounter;
-    private int[][] mazeArray, positionArray;
+    private int[][] positionArray;
     private long tries;
     private double percentage;
-    private char direction;
+    private List<Rectangle> cells;
+    private Point selectedCell;
     private String saveFile;
     private String[] split;
+    private Direction direction;
+    private Tile[][] mazeArray;
+
+    private boolean flag;
 
     public static void main(String[] args) {
         Maze maze = new Maze();
@@ -73,21 +84,20 @@ class Maze {
     }
 
     private void mazeCompute() {
-        //checking the monitor dimensions
-        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
-        //setting the gui size
-        if (screenSize.getWidth() < screenSize.getHeight()) {
-            guiDisplay = (int) (screenSize.getWidth() * 0.8);
+        final Dimension SCREEN_SIZE = Toolkit.getDefaultToolkit().getScreenSize();
+        if (SCREEN_SIZE.getWidth() < SCREEN_SIZE.getHeight()) {
+            guiDisplay = (int) (SCREEN_SIZE.getWidth() * 0.8);
         } else {
-            guiDisplay = (int) (screenSize.getHeight() * 0.8);
+            guiDisplay = (int) (SCREEN_SIZE.getHeight() * 0.8);
         }
         load();
-        mazeArray = new int[sizeValue][sizeValue];
+        mazeArray = new Tile[sizeValue][sizeValue];
         positionArray = new int[sizeValue][sizeValue];
         visitedArray = new boolean[sizeValue][sizeValue];
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                mazeArray[vertical][horizontal] = parseInt(split[vertical * sizeValue + horizontal + 2], 10);
+                final int VALUE = parseInt(split[vertical * sizeValue + horizontal + 2], 10);
+                mazeArray[vertical][horizontal] = intToTile(VALUE);
             }
         }
         prepareGUI();
@@ -121,10 +131,8 @@ class Maze {
         timingSlider.setPreferredSize(new Dimension(150, 40));
         timingSlider.setToolTipText("Milli-seconds Between Turns");
 
-        //setting the layout of both rows of buttons
         panel.setLayout(new FlowLayout(FlowLayout.CENTER));
 
-        //setting upper row of buttons to variable panel
         panel.add(sizeSlider);
         panel.add(btnClear);
         panel.add(btnGenerate);
@@ -138,8 +146,8 @@ class Maze {
         btnClear.addActionListener((ActionEvent e) -> {
             for (int vertical = 0; vertical < sizeValue; vertical++) {
                 for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                    if (mazeArray[vertical][horizontal] != 1) {
-                        mazeArray[vertical][horizontal] = 0;
+                    if (mazeArray[vertical][horizontal] != Tile.BLACK) {
+                        mazeArray[vertical][horizontal] = Tile.WHITE;
                         positionArray[vertical][horizontal] = 0;
                     }
                 }
@@ -156,7 +164,7 @@ class Maze {
             positionCounter = 0;
             tries = 0;
             sizeValue = sizeSlider.getValue();
-            mazeArray = new int[sizeValue][sizeValue];
+            mazeArray = new Tile[sizeValue][sizeValue];
             positionArray = new int[sizeValue][sizeValue];
             visitedArray = new boolean[sizeValue][sizeValue];
             cells = new ArrayList<>(sizeValue * sizeValue);
@@ -169,53 +177,45 @@ class Maze {
 
     private void randomize() {
         int white, black;
-        //loop executed then executed again if too many black tiles
         do {
             initializeRandomize();
             white = 0;
             black = 0;
-            //using 2d array to check every single cells
             for (int vertical = 0; vertical < sizeValue; vertical++) {
                 for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                    //adding one to white if there is a white cell present
-                    if (mazeArray[vertical][horizontal] == 0) {
+                    if (mazeArray[vertical][horizontal] == Tile.WHITE) {
                         white++;
-                        //adding one to black if there is a black cell present
-                    } else if (mazeArray[vertical][horizontal] == 1) {
+                    } else if (mazeArray[vertical][horizontal] == Tile.BLACK) {
                         black++;
                     }
                 }
             }
         } while (black / white > 0.5);
-        //displaying the title of the program
         frame.setTitle("Maze");
     }
 
     private void initializeRandomize() {
-        //setting every cell to wall and unvisited
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                mazeArray[vertical][horizontal] = 1;
+                mazeArray[vertical][horizontal] = Tile.BLACK;
                 visitedArray[vertical][horizontal] = false;
             }
         }
-        int randomOne = (int) (Math.random() * sizeValue);
-        int randomTwo = (int) (Math.random() * sizeValue);
-        //setting the start tile to path and visited
-        mazeArray[randomOne][randomTwo] = 0;
-        visitedArray[randomOne][randomTwo] = true;
-        //creating various temporary tiles around the seed tile
-        if (randomOne > 0) {
-            mazeArray[randomOne - 1][randomTwo] = 10;
+        final int RANDOM_ONE = (int) (Math.random() * sizeValue);
+        final int RANDOM_TWO = (int) (Math.random() * sizeValue);
+        mazeArray[RANDOM_ONE][RANDOM_TWO] = Tile.WHITE;
+        visitedArray[RANDOM_ONE][RANDOM_TWO] = true;
+        if (RANDOM_ONE > 0) {
+            mazeArray[RANDOM_ONE - 1][RANDOM_TWO] = Tile.WALL;
         }
-        if (randomOne < sizeValue - 1) {
-            mazeArray[randomOne + 1][randomTwo] = 10;
+        if (RANDOM_ONE < sizeValue - 1) {
+            mazeArray[RANDOM_ONE + 1][RANDOM_TWO] = Tile.WALL;
         }
-        if (randomTwo > 0) {
-            mazeArray[randomOne][randomTwo - 1] = 10;
+        if (RANDOM_TWO > 0) {
+            mazeArray[RANDOM_ONE][RANDOM_TWO - 1] = Tile.WALL;
         }
-        if (randomTwo < sizeValue - 1) {
-            mazeArray[randomOne][randomTwo + 1] = 10;
+        if (RANDOM_TWO < sizeValue - 1) {
+            mazeArray[RANDOM_ONE][RANDOM_TWO + 1] = Tile.WALL;
         }
         randomGenerator();
     }
@@ -223,60 +223,48 @@ class Maze {
     private void randomGenerator() {
         boolean skip = false, allDone = true;
         int wallCells = 0;
-        //2d array used for setting the amount of wall cells to a variable
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                if (mazeArray[vertical][horizontal] == 10) {
+                if (mazeArray[vertical][horizontal] == Tile.WALL) {
                     wallCells++;
                 }
             }
         }
-        //2d array used for creating path cells
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                //random generation used for determining if cell should be picked
                 int randomPass = (int) (Math.random() * (wallCells + 1));
-                //only uses cell if random generation picks cell and if cells this turn has not
-                //already been picked and if the cell is actually a temp cell
-                if (!skip && mazeArray[vertical][horizontal] == 10 && randomPass == 0) {
-                    //declaring and setting variable to zero
+                if (!skip && mazeArray[vertical][horizontal] == Tile.WALL && randomPass == 0) {
                     int neighbours = 0;
-                    //checking all four sides of cell and reporting amount fo neighbours
-                    if (vertical > 0 && mazeArray[vertical - 1][horizontal] == 0) {
+                    if (vertical > 0 && mazeArray[vertical - 1][horizontal] == Tile.WHITE) {
                         neighbours++;
                     }
-                    if (vertical < sizeValue - 1 && mazeArray[vertical + 1][horizontal] == 0) {
+                    if (vertical < sizeValue - 1 && mazeArray[vertical + 1][horizontal] == Tile.WHITE) {
                         neighbours++;
                     }
-                    if (horizontal > 0 && mazeArray[vertical][horizontal - 1] == 0) {
+                    if (horizontal > 0 && mazeArray[vertical][horizontal - 1] == Tile.WHITE) {
                         neighbours++;
                     }
-                    if (horizontal < sizeValue - 1 && mazeArray[vertical][horizontal + 1] == 0) {
+                    if (horizontal < sizeValue - 1 && mazeArray[vertical][horizontal + 1] == Tile.WHITE) {
                         neighbours++;
                     }
-                    //setting if cells is full or if it empty depending on amount of neighbours
-                    mazeArray[vertical][horizontal] = (neighbours == 1) ? (0) : (1);
-                    //setting the temp cells around the cell
+                    mazeArray[vertical][horizontal] = (neighbours == 1) ? (Tile.WHITE) : (Tile.BLACK);
                     if (vertical > 0 && !visitedArray[vertical - 1][horizontal]) {
-                        mazeArray[vertical - 1][horizontal] = 10;
+                        mazeArray[vertical - 1][horizontal] = Tile.WALL;
                     }
                     if (vertical < sizeValue - 1 && !visitedArray[vertical + 1][horizontal]) {
-                        mazeArray[vertical + 1][horizontal] = 10;
+                        mazeArray[vertical + 1][horizontal] = Tile.WALL;
                     }
                     if (horizontal > 0 && !visitedArray[vertical][horizontal - 1]) {
-                        mazeArray[vertical][horizontal - 1] = 10;
+                        mazeArray[vertical][horizontal - 1] = Tile.WALL;
                     }
                     if (horizontal < sizeValue - 1 && !visitedArray[vertical][horizontal + 1]) {
-                        mazeArray[vertical][horizontal + 1] = 10;
+                        mazeArray[vertical][horizontal + 1] = Tile.WALL;
                     }
-                    //setting skip to true so that this round only one cell is created
                     skip = true;
-                    //setting the cell to visited
                     visitedArray[vertical][horizontal] = true;
                 }
             }
         }
-        //determining if the maze is completed
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
                 if (!visitedArray[vertical][horizontal]) {
@@ -284,12 +272,14 @@ class Maze {
                 }
             }
         }
-        //setting the percentage to the user using an algorithm
-        //from 0% to 80% it is normal speed
-        //from 80% to 90% it is half speed
-        //from 90% to 95% it is a quarter speed
-        //from 95% to 99% it is one eight speed
-        //it never goes above 99%
+        /*
+         * Setting the loading percentage using an algorithm.
+         * From 0% to 80% it is normal speed.
+         * From 80% to 90% it is half speed.
+         * From 90% to 95% it is a quarter speed.
+         * From 95% to 99% it is one eight speed.
+         * It never goes above 99%.
+         */
         if (!allDone) {
             tries++;
             if (percentage != 99) {
@@ -306,7 +296,6 @@ class Maze {
                         }
                     }
                 }
-                //displaying for the user to wait and showing percentage
                 frame.setTitle("Maze (" + (int) percentage + "% Done loading)");
             }
             randomGenerator();
@@ -314,1088 +303,309 @@ class Maze {
     }
 
     private void startSolver() {
-        //only do such if the maze is not solved
         while (Math.abs(endX - currentX) + Math.abs(endY - currentY) != 1) {
-            //case for if in the middle of the board and not corners or sides
-            if (currentX > 0 && currentX < sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //case for if on side of board
-            } else if (currentX == 0 && currentY > 0 && currentY < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //case for if on side of board
-            } else if (currentX == sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //case for if on side of board
-            } else if (currentY == 0 && currentX > 0 && currentX < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //case for if on side of board
-            } else if (currentY == sizeValue - 1 && currentX > 0 && currentX < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                }
-                //case for if in corner of board
-            } else if (currentX == 0 && currentY == 0) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //case for if in corner of board
-            } else if (currentX == 0 && currentY == sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] != 1) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                }
-                //case for if in corner of board
-            } else if (currentX == sizeValue - 1 && currentY == 0) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] != 1) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //case for if in corner of board
-            } else if (currentX == sizeValue - 1 && currentY == sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY - 1][currentX] != 1) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] != 1) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                }
-            }
-            mazeArray[currentY][currentX] = 5;
-            //if the start point is no longer marked, re-mark it
-            if (mazeArray[startY][startX] != 2) {
-                mazeArray[startY][startX] = 2;
+            flag = false;
+            solvingLogic();
+            mazeArray[currentY][currentX] = Tile.NEXT;
+            if (mazeArray[startY][startX] != Tile.RED) {
+                mazeArray[startY][startX] = Tile.RED;
             }
         }
-        //only execute once
         if (!firstTime) {
-            //changes the direction so that it can find most direct path
             switch (direction) {
-                case 'u':
-                    direction = 'd';
+                case UP:
+                    direction = Direction.DOWN;
                     break;
-                case 'd':
-                    direction = 'u';
+                case DOWN:
+                    direction = Direction.UP;
                     break;
-                case 'l':
-                    direction = 'r';
+                case LEFT:
+                    direction = Direction.RIGHT;
                     break;
-                case 'r':
-                    direction = 'l';
+                case RIGHT:
+                    direction = Direction.LEFT;
                     break;
             }
             currentX = endX;
             currentY = endY;
             makePath();
-            //making it so this is not executed again
             firstTime = true;
         }
     }
 
     private void makePath() {
-        //only do such if shortest path is not yet found
         if (Math.abs(startX - currentX) + Math.abs(startY - currentY) != 1) {
-            //situation for when cell is in middle of board and not corner or side
-            if (currentX > 0 && currentX < sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //situation for when cell is on side of board
-            } else if (currentX == 0 && currentY > 0 && currentY < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //situation for when cell is on side of board
-            } else if (currentX == sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //situation for when cell is on side of board
-            } else if (currentY == 0 && currentX > 0 && currentX < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //situation for when cell is on side of board
-            } else if (currentY == sizeValue - 1 && currentX > 0 && currentX < sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                }
-                //situation for when cell is on corner of board
-            } else if (currentX == 0 && currentY == 0) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //situation for when cell is on corner of board
-            } else if (currentX == 0 && currentY == sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX + 1] == 5) { //going right
-                            currentX++;
-                            direction = 'r';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                }
-                //situation for when cell is on corner of board
-            } else if (currentX == sizeValue - 1 && currentY == 0) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY + 1][currentX] == 5) { //going down
-                            currentY++;
-                            direction = 'd';
-                        }
-                        break;
-                }
-                //situation for when cell is on corner of board
-            } else if (currentX == sizeValue - 1 && currentY == sizeValue - 1) {
-                switch (direction) {
-                    case 'r':
-                        //know they were going right
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'l':
-                        //know they were going left
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                    case 'd':
-                        //know they were going down
-                        if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        } else if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        }
-                        break;
-                    case 'u':
-                        //know they were going up
-                        if (mazeArray[currentY - 1][currentX] == 5) { //going up
-                            currentY--;
-                            direction = 'u';
-                        } else if (mazeArray[currentY][currentX - 1] == 5) { //going left
-                            currentX--;
-                            direction = 'l';
-                        }
-                        break;
-                }
-            }
-            mazeArray[currentY][currentX] = 4;
+            flag = true;
+            solvingLogic();
+            mazeArray[currentY][currentX] = Tile.GREEN;
             positionCounter++;
             positionArray[currentY][currentX] = positionCounter;
             makePath();
         }
     }
 
-    //declaring class used for the grid gui
-    public class GridPane extends JPanel {
+    private void solvingLogic() {
+        if (currentX > 0 && currentX < sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
+            switch (direction) {
+                case RIGHT:
+                    computeDirection(Direction.DOWN, Direction.RIGHT, Direction.UP, Direction.LEFT);
+                    break;
+                case LEFT:
+                    computeDirection(Direction.UP, Direction.LEFT, Direction.DOWN, Direction.RIGHT);
+                    break;
+                case DOWN:
+                    computeDirection(Direction.LEFT, Direction.DOWN, Direction.RIGHT, Direction.UP);
+                    break;
+                case UP:
+                    computeDirection(Direction.RIGHT, Direction.UP, Direction.LEFT, Direction.DOWN);
+                    break;
+            }
+        } else if (currentX == 0 && currentY > 0 && currentY < sizeValue - 1) {
+            switch (direction) {
+                case RIGHT:
+                case DOWN:
+                    computeDirection(Direction.DOWN, Direction.RIGHT, Direction.UP, null);
+                    break;
+                case LEFT:
+                    computeDirection(Direction.UP, Direction.DOWN, Direction.RIGHT, null);
+                    break;
+                case UP:
+                    computeDirection(Direction.RIGHT, Direction.UP, Direction.DOWN, null);
+                    break;
+            }
+        } else if (currentX == sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
+            switch (direction) {
+                case RIGHT:
+                    computeDirection(Direction.DOWN, Direction.UP, Direction.LEFT, null);
+                    break;
+                case LEFT:
+                case UP:
+                    computeDirection(Direction.UP, Direction.LEFT, Direction.DOWN, null);
+                    break;
+                case DOWN:
+                    computeDirection(Direction.LEFT, Direction.DOWN, Direction.UP, null);
+                    break;
+            }
+        } else if (currentY == 0 && currentX > 0 && currentX < sizeValue - 1) {
+            switch (direction) {
+                case RIGHT:
+                    computeDirection(Direction.DOWN, Direction.RIGHT, Direction.LEFT, null);
+                    break;
+                case LEFT:
+                case DOWN:
+                    computeDirection(Direction.LEFT, Direction.DOWN, Direction.RIGHT, null);
+                    break;
+                case UP:
+                    computeDirection(Direction.RIGHT, Direction.LEFT, Direction.DOWN, null);
+                    break;
+            }
+        } else if (currentY == sizeValue - 1 && currentX > 0 && currentX < sizeValue - 1) {
+            switch (direction) {
+                case RIGHT:
+                case UP:
+                    computeDirection(Direction.RIGHT, Direction.UP, Direction.LEFT, null);
+                    break;
+                case LEFT:
+                    computeDirection(Direction.UP, Direction.LEFT, Direction.RIGHT, null);
+                    break;
+                case DOWN:
+                    computeDirection(Direction.LEFT, Direction.RIGHT, Direction.UP, null);
+                    break;
+            }
+        } else if (currentX == 0 && currentY == 0) {
+            switch (direction) {
+                case RIGHT:
+                case LEFT:
+                case DOWN:
+                    computeDirection(Direction.DOWN, Direction.RIGHT, null, null);
+                    break;
+                case UP:
+                    computeDirection(Direction.RIGHT, Direction.DOWN, null, null);
+                    break;
+            }
+        } else if (currentX == 0 && currentY == sizeValue - 1) {
+            switch (direction) {
+                case RIGHT:
+                case DOWN:
+                case UP:
+                    computeDirection(Direction.RIGHT, Direction.UP, null, null);
+                    break;
+                case LEFT:
+                    computeDirection(Direction.UP, Direction.RIGHT, null, null);
+                    break;
+            }
+        } else if (currentX == sizeValue - 1 && currentY == 0) {
+            switch (direction) {
+                case RIGHT:
+                    computeDirection(Direction.DOWN, Direction.LEFT, null, null);
+                    break;
+                case LEFT:
+                case DOWN:
+                case UP:
+                    computeDirection(Direction.LEFT, Direction.DOWN, null, null);
+                    break;
+            }
+        } else if (currentX == sizeValue - 1 && currentY == sizeValue - 1) {
+            switch (direction) {
+                case RIGHT:
+                case LEFT:
+                case UP:
+                    computeDirection(Direction.UP, Direction.LEFT, null, null);
+                    break;
+                case DOWN:
+                    computeDirection(Direction.LEFT, Direction.UP, null, null);
+                    break;
+            }
+        }
+    }
 
-        //declaring public used for mouse events
-        public GridPane() {
-            //declaring an array list used for grid gui
+    private void computeDirection(Direction one, Direction two, Direction three, Direction four) {
+        if (flag) {
+            if (mazeAtDirection(one) == Tile.NEXT) {
+                computeCurrentDirection(one);
+            } else if (mazeAtDirection(two) == Tile.NEXT) {
+                computeCurrentDirection(two);
+            } else if (three != null && mazeAtDirection(three) == Tile.NEXT) {
+                computeCurrentDirection(three);
+            } else if (four != null && mazeAtDirection(four) == Tile.NEXT) {
+                computeCurrentDirection(four);
+            }
+        } else {
+            if (mazeAtDirection(one) != Tile.BLACK) {
+                computeCurrentDirection(one);
+            } else if (mazeAtDirection(two) != Tile.BLACK) {
+                computeCurrentDirection(two);
+            } else if (three != null && mazeAtDirection(three) != Tile.BLACK) {
+                computeCurrentDirection(three);
+            } else if (four != null && mazeAtDirection(four) != Tile.BLACK) {
+                computeCurrentDirection(four);
+            }
+        }
+    }
+
+    private Tile mazeAtDirection(Direction input) {
+        if (input == Direction.UP) {
+            return mazeArray[currentY - 1][currentX];
+        } else if (input == Direction.DOWN) {
+            return mazeArray[currentY + 1][currentX];
+        } else if (input == Direction.RIGHT) {
+            return mazeArray[currentY][currentX + 1];
+        } else if (input == Direction.LEFT) {
+            return mazeArray[currentY][currentX - 1];
+        } else {
+            System.err.println("Error in method mazeAtDirection");
+            return mazeArray[currentY][currentX - 1];
+        }
+    }
+
+    private void computeCurrentDirection(Direction input) {
+        if (input == Direction.UP) {
+            currentY--;
+            direction = Direction.UP;
+        } else if (input == Direction.DOWN) {
+            currentY++;
+            direction = Direction.DOWN;
+        } else if (input == Direction.RIGHT) {
+            currentX++;
+            direction = Direction.RIGHT;
+        } else if (input == Direction.LEFT) {
+            currentX--;
+            direction = Direction.LEFT;
+        }
+    }
+
+    private class GridPane extends JPanel {
+
+        GridPane() {
             cells = new ArrayList<>(sizeValue * sizeValue);
             addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (colourMode == 0 || colourMode == 1) {
-                        //declaring and setting x and y variables
-                        int horizontalClickPosition = (e.getX() - xOffset) / (getWidth() / sizeValue);
-                        int verticalClickPosition = (e.getY() - yOffset) / (getHeight() / sizeValue);
-                        //do only if cell in area is a path tile
-                        if (verticalClickPosition >= 0 && verticalClickPosition <= sizeValue - 1
-                                && horizontalClickPosition >= 0 && horizontalClickPosition <= sizeValue - 1) {
-                            if (mazeArray[verticalClickPosition][horizontalClickPosition] == 0) {
+                        final int HORIZONTAL_CLICK_POSITION = (e.getX() - xOffset) / (getWidth() / sizeValue);
+                        final int VERTICAL_CLICK_POSITION = (e.getY() - yOffset) / (getHeight() / sizeValue);
+                        if (VERTICAL_CLICK_POSITION >= 0 && VERTICAL_CLICK_POSITION <= sizeValue - 1
+                                && HORIZONTAL_CLICK_POSITION >= 0 && HORIZONTAL_CLICK_POSITION <= sizeValue - 1) {
+                            if (mazeArray[VERTICAL_CLICK_POSITION][HORIZONTAL_CLICK_POSITION] == Tile.WHITE) {
                                 if (colourMode == 0) {
-                                    //setting the start y coordinate
-                                    startY = verticalClickPosition;
-                                    currentY = verticalClickPosition;
-                                    //setting the start x coordinate
-                                    startX = horizontalClickPosition;
-                                    currentX = horizontalClickPosition;
-                                    //setting starting direction in maze
+                                    startY = VERTICAL_CLICK_POSITION;
+                                    currentY = VERTICAL_CLICK_POSITION;
+                                    startX = HORIZONTAL_CLICK_POSITION;
+                                    currentX = HORIZONTAL_CLICK_POSITION;
                                     if (currentX > 0 && currentX < sizeValue - 1 && currentY > 0
                                             && currentY < sizeValue - 1) {
-                                        if (mazeArray[currentY][currentX + 1] == 0) {
-                                            direction = 'r';
-                                        } else if (mazeArray[currentY + 1][currentX] == 0) {
-                                            direction = 'd';
-                                        } else if (mazeArray[currentY][currentX - 1] == 0) {
-                                            direction = 'l';
-                                        } else if (mazeArray[currentY - 1][currentX] == 0) {
-                                            direction = 'u';
+                                        if (mazeArray[currentY][currentX + 1] == Tile.WHITE) {
+                                            direction = Direction.RIGHT;
+                                        } else if (mazeArray[currentY + 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.DOWN;
+                                        } else if (mazeArray[currentY][currentX - 1] == Tile.WHITE) {
+                                            direction = Direction.LEFT;
+                                        } else if (mazeArray[currentY - 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.UP;
                                         }
                                     } else if (currentX == 0 && currentY > 0 && currentY < sizeValue - 1) {
-                                        if (mazeArray[currentY][currentX + 1] == 0) {
-                                            direction = 'r';
-                                        } else if (mazeArray[currentY + 1][currentX] == 0) {
-                                            direction = 'd';
-                                        } else if (mazeArray[currentY - 1][currentX] == 0) {
-                                            direction = 'u';
+                                        if (mazeArray[currentY][currentX + 1] == Tile.WHITE) {
+                                            direction = Direction.RIGHT;
+                                        } else if (mazeArray[currentY + 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.DOWN;
+                                        } else if (mazeArray[currentY - 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.UP;
                                         }
                                     } else if (currentX == sizeValue - 1 && currentY > 0 && currentY < sizeValue - 1) {
-                                        if (mazeArray[currentY + 1][currentX] == 0) {
-                                            direction = 'd';
-                                        } else if (mazeArray[currentY][currentX - 1] == 0) {
-                                            direction = 'l';
-                                        } else if (mazeArray[currentY - 1][currentX] == 0) {
-                                            direction = 'u';
+                                        if (mazeArray[currentY + 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.DOWN;
+                                        } else if (mazeArray[currentY][currentX - 1] == Tile.WHITE) {
+                                            direction = Direction.LEFT;
+                                        } else if (mazeArray[currentY - 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.UP;
                                         }
                                     } else if (currentX > 0 && currentX < sizeValue - 1 && currentY == 0) {
-                                        if (mazeArray[currentY][currentX + 1] == 0) {
-                                            direction = 'r';
-                                        } else if (mazeArray[currentY + 1][currentX] == 0) {
-                                            direction = 'd';
-                                        } else if (mazeArray[currentY][currentX - 1] == 0) {
-                                            direction = 'l';
+                                        if (mazeArray[currentY][currentX + 1] == Tile.WHITE) {
+                                            direction = Direction.RIGHT;
+                                        } else if (mazeArray[currentY + 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.DOWN;
+                                        } else if (mazeArray[currentY][currentX - 1] == Tile.WHITE) {
+                                            direction = Direction.LEFT;
                                         }
                                     } else if (currentX > 0 && currentX < sizeValue - 1 && currentY == sizeValue - 1) {
-                                        if (mazeArray[currentY][currentX + 1] == 0) {
-                                            direction = 'r';
-                                        } else if (mazeArray[currentY][currentX - 1] == 0) {
-                                            direction = 'l';
-                                        } else if (mazeArray[currentY - 1][currentX] == 0) {
-                                            direction = 'u';
+                                        if (mazeArray[currentY][currentX + 1] == Tile.WHITE) {
+                                            direction = Direction.RIGHT;
+                                        } else if (mazeArray[currentY][currentX - 1] == Tile.WHITE) {
+                                            direction = Direction.LEFT;
+                                        } else if (mazeArray[currentY - 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.UP;
                                         }
                                     } else if (currentX == 0 && currentY == 0) {
-                                        if (mazeArray[currentY][currentX + 1] == 0) {
-                                            direction = 'r';
-                                        } else if (mazeArray[currentY + 1][currentX] == 0) {
-                                            direction = 'd';
+                                        if (mazeArray[currentY][currentX + 1] == Tile.WHITE) {
+                                            direction = Direction.RIGHT;
+                                        } else if (mazeArray[currentY + 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.DOWN;
                                         }
                                     } else if (currentX == 0 && currentY == sizeValue - 1) {
-                                        if (mazeArray[currentY][currentX + 1] == 0) {
-                                            direction = 'r';
-                                        } else if (mazeArray[currentY - 1][currentX] == 0) {
-                                            direction = 'u';
+                                        if (mazeArray[currentY][currentX + 1] == Tile.WHITE) {
+                                            direction = Direction.RIGHT;
+                                        } else if (mazeArray[currentY - 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.UP;
                                         }
                                     } else if (currentX == sizeValue - 1 && currentY == 0) {
-                                        if (mazeArray[currentY + 1][currentX] == 0) {
-                                            direction = 'd';
-                                        } else if (mazeArray[currentY][currentX - 1] == 0) {
-                                            direction = 'l';
+                                        if (mazeArray[currentY + 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.DOWN;
+                                        } else if (mazeArray[currentY][currentX - 1] == Tile.WHITE) {
+                                            direction = Direction.LEFT;
                                         }
                                     } else if (currentX == sizeValue - 1 && currentY == sizeValue - 1) {
-                                        if (mazeArray[currentY][currentX - 1] == 0) {
-                                            direction = 'l';
-                                        } else if (mazeArray[currentY - 1][currentX] == 0) {
-                                            direction = 'u';
+                                        if (mazeArray[currentY][currentX - 1] == Tile.WHITE) {
+                                            direction = Direction.LEFT;
+                                        } else if (mazeArray[currentY - 1][currentX] == Tile.WHITE) {
+                                            direction = Direction.UP;
                                         }
                                     }
-                                    //setting start tile
-                                    mazeArray[verticalClickPosition][horizontalClickPosition] = 2;
+                                    mazeArray[VERTICAL_CLICK_POSITION][HORIZONTAL_CLICK_POSITION] = Tile.RED;
                                     colourMode++;
                                 } else if (colourMode == 1) {
-                                    endY = verticalClickPosition;
-                                    endX = horizontalClickPosition;
-                                    mazeArray[verticalClickPosition][horizontalClickPosition] = 3;
+                                    endY = VERTICAL_CLICK_POSITION;
+                                    endX = HORIZONTAL_CLICK_POSITION;
+                                    mazeArray[VERTICAL_CLICK_POSITION][HORIZONTAL_CLICK_POSITION] = Tile.BLUE;
                                     colourMode++;
                                     startSolver();
                                 }
@@ -1406,9 +616,7 @@ class Maze {
             });
             MouseAdapter mouseHandler;
             mouseHandler = new MouseAdapter() {
-
-                //if user moves mouse execute following line of code in order to show
-                //temporary colour where a tile would be if user mouse clicked
+                
                 @Override
                 public void mouseMoved(MouseEvent e) {
                     int width = getWidth();
@@ -1429,39 +637,34 @@ class Maze {
             addMouseMotionListener(mouseHandler);
         }
 
-        //setting size of the grid gui
         @Override
         public Dimension getPreferredSize() {
             return new Dimension(guiDisplay, guiDisplay + 49);
         }
 
-        //protected void used for setting cell colour
         @Override
         protected void paintComponent(Graphics g) {
-            //following lines used to determine x and y coordinates
             super.paintComponent(g);
-            Graphics2D g2d = (Graphics2D) g.create();
-            int width = getWidth();
-            int height = getHeight();
-            int cellWidth = width / sizeValue;
-            int cellHeight = height / sizeValue;
-            xOffset = (width - (sizeValue * cellWidth)) / 2;
-            yOffset = (height - (sizeValue * cellHeight)) / 2;
+            final Graphics2D g2d = (Graphics2D) g.create();
+            final int WIDTH = getWidth();
+            final int HEIGHT = getHeight();
+            final int CELL_WIDTH = WIDTH / sizeValue;
+            final int CELL_HEIGHT = HEIGHT / sizeValue;
+            xOffset = (WIDTH - (sizeValue * CELL_WIDTH)) / 2;
+            yOffset = (HEIGHT - (sizeValue * CELL_HEIGHT)) / 2;
             if (cells.isEmpty()) {
                 for (int row = 0; row < sizeValue; row++) {
                     for (int col = 0; col < sizeValue; col++) {
                         Rectangle cell = new Rectangle(
-                                xOffset + (col * cellWidth),
-                                yOffset + (row * cellHeight),
-                                cellWidth,
-                                cellHeight);
+                                xOffset + (col * CELL_WIDTH),
+                                yOffset + (row * CELL_HEIGHT),
+                                CELL_WIDTH,
+                                CELL_HEIGHT);
                         cells.add(cell);
                     }
                 }
             }
 
-            //used for showing temporary cell colour where cursor is
-            //hovering and when if clicked would become permanent colour
             if (selectedCell != null && (colourMode == 0 || colourMode == 1)) {
                 if (selectedCell.x + (selectedCell.y * sizeValue) <= sizeValue * sizeValue) {
                     int index = selectedCell.x + (selectedCell.y * sizeValue);
@@ -1474,8 +677,7 @@ class Maze {
                     g2d.fill(cell);
                 }
             }
-
-            //drawing grey outlines of the cells
+            
             g2d.setColor(Color.GRAY);
             cells.forEach(g2d::draw);
 
@@ -1490,19 +692,19 @@ class Maze {
                 for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
                     Rectangle cell = cells.get(horizontal + vertical * sizeValue);
                     switch (mazeArray[vertical][horizontal]) {
-                        case 1:
+                        case BLACK:
                             g2d.setColor(Color.BLACK);
                             g2d.fill(cell);
                             break;
-                        case 2:
+                        case RED:
                             g2d.setColor(Color.RED);
                             g2d.fill(cell);
                             break;
-                        case 3:
+                        case BLUE:
                             g2d.setColor(Color.BLUE);
                             g2d.fill(cell);
                             break;
-                        case 4:
+                        case GREEN:
                             g2d.setColor(Color.GREEN);
                             if (positionArray[vertical][horizontal] == positionCounter && !cancel) {
                                 for (int vertical2 = 0; vertical2 < sizeValue; vertical2++) {
@@ -1534,7 +736,6 @@ class Maze {
         try {
             Files.createFile(FILE);
         } catch (FileAlreadyExistsException x) {
-            //file is read from and saved to variable saveFile if file already exists
             try (InputStream in = Files.newInputStream(FILE);
                  BufferedReader reader = new BufferedReader(new InputStreamReader(in))) {
                 String line;
@@ -1547,28 +748,23 @@ class Maze {
         } catch (IOException x) {
             System.err.println("Error 2 in method load");
         }
-        //if the file does not contain anything since it was just created, default variables are used for save file
         if (saveFile == null) {
             saveFile = "10 100 0 0 0 0 0 1 0 0 0 0 1 1 0 1 0 1 0 1 1 0 1 1 0 1 0 1 0 1 1 0 1 0 1 0 0 0 1 1 0 0 0 0 0 "
                     + "1 1 0 0 1 1 0 0 1 0 1 1 0 1 1 0 0 1 0 0 0 0 0 0 0 1 0 1 1 1 0 1 0 1 0 0 0 1 0 0 0 1 1 1 1 1 0 "
                     + "0 0 1 0 0 0 1 0 0 0";
         }
-        //a String array is created and each part of the array is saved to from saveFile separated by spaces
         split = saveFile.split("\\s+");
-        //variable size is the first number
         sizeValue = parseInt(split[0], 10);
-        //variable time is the second number
         time = parseInt(split[1], 10);
     }
 
     private void save() {
-        //saveFile is created using the main variables separated by spaces
         saveFile = sizeValue + " " + time;
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
                 saveFile += " ";
-                if (mazeArray[vertical][horizontal] == 0 || mazeArray[vertical][horizontal] == 1) {
-                    saveFile += mazeArray[vertical][horizontal];
+                if (mazeArray[vertical][horizontal] == Tile.WHITE || mazeArray[vertical][horizontal] == Tile.BLACK) {
+                    saveFile += tileToInt(mazeArray[vertical][horizontal]);
                 } else {
                     saveFile += 0;
                 }
@@ -1580,6 +776,50 @@ class Maze {
             out.write(data, 0, data.length);
         } catch (IOException x) {
             System.err.println("Error in method save");
+        }
+    }
+
+    private int tileToInt(Tile input) {
+        switch (input) {
+            case WHITE:
+                return 0;
+            case BLACK:
+                return 1;
+            case RED:
+                return 2;
+            case BLUE:
+                return 3;
+            case GREEN:
+                return 4;
+            case NEXT:
+                return 5;
+            case WALL:
+                return 10;
+            default:
+                System.err.println("Error in method tileToInt");
+                return 10;
+        }
+    }
+
+    private Tile intToTile(int input) {
+        switch (input) {
+            case 0:
+                return Tile.WHITE;
+            case 1:
+                return Tile.BLACK;
+            case 2:
+                return Tile.RED;
+            case 3:
+                return Tile.BLUE;
+            case 4:
+                return Tile.GREEN;
+            case 5:
+                return Tile.NEXT;
+            case 10:
+                return Tile.WALL;
+            default:
+                System.err.println("Error in method intToTile");
+                return Tile.WALL;
         }
     }
 }
