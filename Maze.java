@@ -1,7 +1,7 @@
 /*
  * Bailey Thompson
- * Maze (1.3.1)
- * 20 February 2017
+ * Maze (1.3.2)
+ * 18 April 2017
  */
 
 import java.awt.BorderLayout;
@@ -22,10 +22,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.Integer;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -34,10 +36,7 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSlider;
-
-import static java.lang.Integer.parseInt;
-import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
-import static java.nio.file.StandardOpenOption.WRITE;
+import javax.swing.WindowConstants;
 
 /**
  * The user is first introduced to a default grid, in which a file is created using file io. The user has an option of
@@ -54,14 +53,15 @@ import static java.nio.file.StandardOpenOption.WRITE;
  */
 class Maze {
 
-    enum Tile{WHITE, BLACK, RED, BLUE, GREEN, NEXT, WALL}
-    enum Direction{UP, DOWN, RIGHT, LEFT}
+    enum Tile {WHITE, BLACK, RED, BLUE, GREEN, NEXT, WALL}
+
+    enum Direction {UP, DOWN, RIGHT, LEFT}
 
     private static final Path FILE = Paths.get("Maze.txt");
 
     private JFrame frame;
-    private JSlider sizeSlider, timingSlider;
-    
+    private JSlider size, timing;
+
     private boolean firstTime;
     private boolean[][] visitedArray;
     private int xOffset, yOffset, colourMode, currentX, currentY, endX, endY, startX, startY;
@@ -84,11 +84,11 @@ class Maze {
     }
 
     private void mazeCompute() {
-        final Dimension SCREEN_SIZE = Toolkit.getDefaultToolkit().getScreenSize();
-        if (SCREEN_SIZE.getWidth() < SCREEN_SIZE.getHeight()) {
-            guiDisplay = (int) (SCREEN_SIZE.getWidth() * 0.8);
+        final Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        if (screenSize.getWidth() < screenSize.getHeight()) {
+            guiDisplay = (int) (screenSize.getWidth() * 0.8);
         } else {
-            guiDisplay = (int) (SCREEN_SIZE.getHeight() * 0.8);
+            guiDisplay = (int) (screenSize.getHeight() * 0.8);
         }
         load();
         mazeArray = new Tile[sizeValue][sizeValue];
@@ -96,7 +96,7 @@ class Maze {
         visitedArray = new boolean[sizeValue][sizeValue];
         for (int vertical = 0; vertical < sizeValue; vertical++) {
             for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
-                final int VALUE = parseInt(split[vertical * sizeValue + horizontal + 2], 10);
+                final int VALUE = Integer.parseInt(split[vertical * sizeValue + horizontal + 2], 10);
                 mazeArray[vertical][horizontal] = intToTile(VALUE);
             }
         }
@@ -105,7 +105,7 @@ class Maze {
 
     private void prepareGUI() {
         frame = new JFrame("Maze");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         frame.setResizable(false);
         frame.setLayout(new BorderLayout());
         frame.add(new GridPane());
@@ -115,35 +115,35 @@ class Maze {
 
         JPanel panel = new JPanel();
 
-        JButton btnClear = new JButton("Clear");
-        JButton btnGenerate = new JButton("Generate");
-        JButton btnExit = new JButton("Exit");
+        JButton clear = new JButton("Clear");
+        JButton generate = new JButton("Generate");
+        JButton exit = new JButton("Exit");
 
-        sizeSlider = new JSlider(JSlider.HORIZONTAL, 2, 30, sizeValue);
-        sizeSlider.setPaintLabels(true);
-        sizeSlider.setMajorTickSpacing(4);
-        sizeSlider.setPreferredSize(new Dimension(150, 40));
-        sizeSlider.setToolTipText("Size Of The Grid");
+        size = new JSlider(JSlider.HORIZONTAL, 2, 30, sizeValue);
+        size.setPaintLabels(true);
+        size.setMajorTickSpacing(4);
+        size.setPreferredSize(new Dimension(150, 40));
+        size.setToolTipText("Size Of The Grid");
 
-        timingSlider = new JSlider(JSlider.HORIZONTAL, 0, 1000, time);
-        timingSlider.setPaintLabels(true);
-        timingSlider.setMajorTickSpacing(250);
-        timingSlider.setPreferredSize(new Dimension(150, 40));
-        timingSlider.setToolTipText("Milli-seconds Between Turns");
+        timing = new JSlider(JSlider.HORIZONTAL, 0, 1000, time);
+        timing.setPaintLabels(true);
+        timing.setMajorTickSpacing(250);
+        timing.setPreferredSize(new Dimension(150, 40));
+        timing.setToolTipText("Milli-seconds Between Turns");
 
         panel.setLayout(new FlowLayout(FlowLayout.CENTER));
 
-        panel.add(sizeSlider);
-        panel.add(btnClear);
-        panel.add(btnGenerate);
-        panel.add(btnExit);
-        panel.add(timingSlider);
+        panel.add(size);
+        panel.add(clear);
+        panel.add(generate);
+        panel.add(exit);
+        panel.add(timing);
 
         frame.add(panel, BorderLayout.SOUTH);
 
         frame.setVisible(true);
 
-        btnClear.addActionListener((ActionEvent e) -> {
+        clear.addActionListener((ActionEvent e) -> {
             for (int vertical = 0; vertical < sizeValue; vertical++) {
                 for (int horizontal = 0; horizontal < sizeValue; horizontal++) {
                     if (mazeArray[vertical][horizontal] != Tile.BLACK) {
@@ -157,13 +157,13 @@ class Maze {
             positionCounter = 0;
         });
 
-        btnGenerate.addActionListener((ActionEvent e) -> {
+        generate.addActionListener((ActionEvent e) -> {
             firstTime = false;
             percentage = 0;
             colourMode = 0;
             positionCounter = 0;
             tries = 0;
-            sizeValue = sizeSlider.getValue();
+            sizeValue = size.getValue();
             mazeArray = new Tile[sizeValue][sizeValue];
             positionArray = new int[sizeValue][sizeValue];
             visitedArray = new boolean[sizeValue][sizeValue];
@@ -172,7 +172,7 @@ class Maze {
             save();
         });
 
-        btnExit.addActionListener((ActionEvent e) -> System.exit(0));
+        exit.addActionListener((ActionEvent e) -> System.exit(0));
     }
 
     private void randomize() {
@@ -201,21 +201,21 @@ class Maze {
                 visitedArray[vertical][horizontal] = false;
             }
         }
-        final int RANDOM_ONE = (int) (Math.random() * sizeValue);
-        final int RANDOM_TWO = (int) (Math.random() * sizeValue);
-        mazeArray[RANDOM_ONE][RANDOM_TWO] = Tile.WHITE;
-        visitedArray[RANDOM_ONE][RANDOM_TWO] = true;
-        if (RANDOM_ONE > 0) {
-            mazeArray[RANDOM_ONE - 1][RANDOM_TWO] = Tile.WALL;
+        final int randomOne = (int) (Math.random() * sizeValue);
+        final int randomTwo = (int) (Math.random() * sizeValue);
+        mazeArray[randomOne][randomTwo] = Tile.WHITE;
+        visitedArray[randomOne][randomTwo] = true;
+        if (randomOne > 0) {
+            mazeArray[randomOne - 1][randomTwo] = Tile.WALL;
         }
-        if (RANDOM_ONE < sizeValue - 1) {
-            mazeArray[RANDOM_ONE + 1][RANDOM_TWO] = Tile.WALL;
+        if (randomOne < sizeValue - 1) {
+            mazeArray[randomOne + 1][randomTwo] = Tile.WALL;
         }
-        if (RANDOM_TWO > 0) {
-            mazeArray[RANDOM_ONE][RANDOM_TWO - 1] = Tile.WALL;
+        if (randomTwo > 0) {
+            mazeArray[randomOne][randomTwo - 1] = Tile.WALL;
         }
-        if (RANDOM_TWO < sizeValue - 1) {
-            mazeArray[RANDOM_ONE][RANDOM_TWO + 1] = Tile.WALL;
+        if (randomTwo < sizeValue - 1) {
+            mazeArray[randomOne][randomTwo + 1] = Tile.WALL;
         }
         randomGenerator();
     }
@@ -484,17 +484,18 @@ class Maze {
     }
 
     private Tile mazeAtDirection(Direction input) {
-        if (input == Direction.UP) {
-            return mazeArray[currentY - 1][currentX];
-        } else if (input == Direction.DOWN) {
-            return mazeArray[currentY + 1][currentX];
-        } else if (input == Direction.RIGHT) {
-            return mazeArray[currentY][currentX + 1];
-        } else if (input == Direction.LEFT) {
-            return mazeArray[currentY][currentX - 1];
-        } else {
-            System.err.println("Error in method mazeAtDirection");
-            return mazeArray[currentY][currentX - 1];
+        switch (input) {
+            case UP:
+                return mazeArray[currentY - 1][currentX];
+            case DOWN:
+                return mazeArray[currentY + 1][currentX];
+            case RIGHT:
+                return mazeArray[currentY][currentX + 1];
+            case LEFT:
+                return mazeArray[currentY][currentX - 1];
+            default:
+                System.err.println("Error in Maze.mazeAtDirection: invalid direction.");
+                return mazeArray[currentY][currentX - 1];
         }
     }
 
@@ -522,16 +523,16 @@ class Maze {
                 @Override
                 public void mouseClicked(MouseEvent e) {
                     if (colourMode == 0 || colourMode == 1) {
-                        final int HORIZONTAL_CLICK_POSITION = (e.getX() - xOffset) / (getWidth() / sizeValue);
-                        final int VERTICAL_CLICK_POSITION = (e.getY() - yOffset) / (getHeight() / sizeValue);
-                        if (VERTICAL_CLICK_POSITION >= 0 && VERTICAL_CLICK_POSITION <= sizeValue - 1
-                                && HORIZONTAL_CLICK_POSITION >= 0 && HORIZONTAL_CLICK_POSITION <= sizeValue - 1) {
-                            if (mazeArray[VERTICAL_CLICK_POSITION][HORIZONTAL_CLICK_POSITION] == Tile.WHITE) {
+                        final int horizontalClickPosition = (e.getX() - xOffset) / (getWidth() / sizeValue);
+                        final int verticalClickPosition = (e.getY() - yOffset) / (getHeight() / sizeValue);
+                        if (verticalClickPosition >= 0 && verticalClickPosition <= sizeValue - 1
+                                && horizontalClickPosition >= 0 && horizontalClickPosition <= sizeValue - 1) {
+                            if (mazeArray[verticalClickPosition][horizontalClickPosition] == Tile.WHITE) {
                                 if (colourMode == 0) {
-                                    startY = VERTICAL_CLICK_POSITION;
-                                    currentY = VERTICAL_CLICK_POSITION;
-                                    startX = HORIZONTAL_CLICK_POSITION;
-                                    currentX = HORIZONTAL_CLICK_POSITION;
+                                    startY = verticalClickPosition;
+                                    currentY = verticalClickPosition;
+                                    startX = horizontalClickPosition;
+                                    currentX = horizontalClickPosition;
                                     if (currentX > 0 && currentX < sizeValue - 1 && currentY > 0
                                             && currentY < sizeValue - 1) {
                                         if (mazeArray[currentY][currentX + 1] == Tile.WHITE) {
@@ -600,12 +601,12 @@ class Maze {
                                             direction = Direction.UP;
                                         }
                                     }
-                                    mazeArray[VERTICAL_CLICK_POSITION][HORIZONTAL_CLICK_POSITION] = Tile.RED;
+                                    mazeArray[verticalClickPosition][horizontalClickPosition] = Tile.RED;
                                     colourMode++;
                                 } else if (colourMode == 1) {
-                                    endY = VERTICAL_CLICK_POSITION;
-                                    endX = HORIZONTAL_CLICK_POSITION;
-                                    mazeArray[VERTICAL_CLICK_POSITION][HORIZONTAL_CLICK_POSITION] = Tile.BLUE;
+                                    endY = verticalClickPosition;
+                                    endX = horizontalClickPosition;
+                                    mazeArray[verticalClickPosition][horizontalClickPosition] = Tile.BLUE;
                                     colourMode++;
                                     startSolver();
                                 }
@@ -616,7 +617,7 @@ class Maze {
             });
             MouseAdapter mouseHandler;
             mouseHandler = new MouseAdapter() {
-                
+
                 @Override
                 public void mouseMoved(MouseEvent e) {
                     int width = getWidth();
@@ -648,18 +649,18 @@ class Maze {
             final Graphics2D g2d = (Graphics2D) g.create();
             final int WIDTH = getWidth();
             final int HEIGHT = getHeight();
-            final int CELL_WIDTH = WIDTH / sizeValue;
-            final int CELL_HEIGHT = HEIGHT / sizeValue;
-            xOffset = (WIDTH - (sizeValue * CELL_WIDTH)) / 2;
-            yOffset = (HEIGHT - (sizeValue * CELL_HEIGHT)) / 2;
+            final int cellWidth = WIDTH / sizeValue;
+            final int cellHeight = HEIGHT / sizeValue;
+            xOffset = (WIDTH - (sizeValue * cellWidth)) / 2;
+            yOffset = (HEIGHT - (sizeValue * cellHeight)) / 2;
             if (cells.isEmpty()) {
                 for (int row = 0; row < sizeValue; row++) {
                     for (int col = 0; col < sizeValue; col++) {
                         Rectangle cell = new Rectangle(
-                                xOffset + (col * CELL_WIDTH),
-                                yOffset + (row * CELL_HEIGHT),
-                                CELL_WIDTH,
-                                CELL_HEIGHT);
+                                xOffset + (col * cellWidth),
+                                yOffset + (row * cellHeight),
+                                cellWidth,
+                                cellHeight);
                         cells.add(cell);
                     }
                 }
@@ -677,12 +678,12 @@ class Maze {
                     g2d.fill(cell);
                 }
             }
-            
+
             g2d.setColor(Color.GRAY);
             cells.forEach(g2d::draw);
 
             int tempTime = time;
-            time = timingSlider.getValue();
+            time = timing.getValue();
             if (tempTime != time) {
                 save();
             }
@@ -743,10 +744,10 @@ class Maze {
                     saveFile = line;
                 }
             } catch (IOException y) {
-                System.err.println("Error 1 in method load");
+                System.err.println("Error in Maze.load: could not open file.");
             }
         } catch (IOException x) {
-            System.err.println("Error 2 in method load");
+            System.err.println("Error in Maze.load: could not create file.");
         }
         if (saveFile == null) {
             saveFile = "10 100 0 0 0 0 0 1 0 0 0 0 1 1 0 1 0 1 0 1 1 0 1 1 0 1 0 1 0 1 1 0 1 0 1 0 0 0 1 1 0 0 0 0 0 "
@@ -754,8 +755,8 @@ class Maze {
                     + "0 0 1 0 0 0 1 0 0 0";
         }
         split = saveFile.split("\\s+");
-        sizeValue = parseInt(split[0], 10);
-        time = parseInt(split[1], 10);
+        sizeValue = Integer.parseInt(split[0], 10);
+        time = Integer.parseInt(split[1], 10);
     }
 
     private void save() {
@@ -772,10 +773,10 @@ class Maze {
         }
         byte data[] = saveFile.getBytes();
         try (OutputStream out = new BufferedOutputStream(
-                Files.newOutputStream(FILE, WRITE, TRUNCATE_EXISTING))) {
+                Files.newOutputStream(FILE, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING))) {
             out.write(data, 0, data.length);
         } catch (IOException x) {
-            System.err.println("Error in method save");
+            System.err.println("Error in Maze.save: could not open or write to file.");
         }
     }
 
@@ -796,7 +797,7 @@ class Maze {
             case WALL:
                 return 10;
             default:
-                System.err.println("Error in method tileToInt");
+                System.err.println("Error in Maze.tileToInt: hit default.");
                 return 10;
         }
     }
@@ -818,7 +819,7 @@ class Maze {
             case 10:
                 return Tile.WALL;
             default:
-                System.err.println("Error in method intToTile");
+                System.err.println("Error in Maze.intToTile: hit default.");
                 return Tile.WALL;
         }
     }
